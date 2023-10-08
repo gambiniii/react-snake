@@ -9,7 +9,16 @@ export default function Screen() {
     const columns = []
     const frames = []
 
-    const [headPosition, setHeadPosition] = useState({ x: 0, y: 0 });
+    let initialBody = [
+        { x: 1, y: 0 },
+        { x: 1, y: 1 },
+        { x: 1, y: 2 },
+        { x: 1, y: 3 },
+    ]
+
+    const [headPosition, setHeadPosition] = useState({ x: 1, y: 3 });
+    const [body, setBody] = useState(initialBody)
+    const [fruit, setFruit] = useState({ x: 6, y: 8 })
 
 
     function createFrames(dimension) {
@@ -19,11 +28,11 @@ export default function Screen() {
         }
 
         lines.map(
-            (line, lineIndex) => {
+            (line) => {
                 let lineBlock = []
 
                 columns.map(
-                    (column, columnIndex) => {
+                    (column) => {
                         lineBlock.push(
                             {
                                 id: column + line,
@@ -40,6 +49,15 @@ export default function Screen() {
 
     function moveSnake(direction) {
         setHeadPosition((prevPosition) => {
+            setBody(body => {
+                body.push({
+                    x: prevPosition.x + direction.x,
+                    y: prevPosition.y + direction.y
+                })
+
+                body.shift()
+                return body
+            })
             return {
                 x: prevPosition.x + direction.x,
                 y: prevPosition.y + direction.y
@@ -66,6 +84,16 @@ export default function Screen() {
         }
     }
 
+    function classifier(frame) {
+        let className = ""
+
+        if (body.find(body => body.x == frame.line - 1 && body.y == alphabet.indexOf(frame.column))) className = 'body'
+        if (body[body.length - 1].x == frame.line - 1 && body[body.length - 1].y == alphabet.indexOf(frame.column)) className = 'head'
+        if (fruit.x == frame.line - 1 && fruit.y == alphabet.indexOf(frame.column)) className = 'fruit'
+
+        return className
+    }
+
     createFrames(dimension)
 
     useEffect(() => {
@@ -86,7 +114,12 @@ export default function Screen() {
                             {
                                 line.map(({ id, line, column }) => {
                                     return (
-                                        <Frame id={id} className={headPosition.x === line - 1 && headPosition.y === alphabet.indexOf(column) ? 'head' : ''} />
+                                        <Frame
+                                            id={id}
+                                            className={
+                                                classifier({ id, line, column })
+                                            }
+                                        />
                                     )
                                 })
                             }
@@ -94,7 +127,22 @@ export default function Screen() {
                     )
                 })
             }
+            <div style={{ fontSize: "24px", fontWeight: "bold" }}>
+                <p>Olá
+                    <span style={
+                        {
+                            backgroundImage: "linear-gradient(to left, violet, indigo, blue, green, yellow, orange, red)",
+                            color: "transparent",
+                            WebkitBackgroundClip: "text"
+                        }}>
+                         @Recruiter
+                    </span>!
+                </p>
+                <p>Esse projeto ainda não está finalizdo</p>
+                <p>Bjs!</p>
 
-        </div>
+            </div>
+
+        </div >
     )
 }
