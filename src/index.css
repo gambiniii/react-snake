@@ -5,6 +5,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #aaa;
 }
 
 code {
@@ -12,6 +13,14 @@ code {
     monospace;
 }
 
-.head{
-  background-color: rgb(0, 255, 42)
+.head {
+  background-color: rgb(0, 255, 42) !important
+}
+
+.body {
+  background-color: rgb(28, 194, 55)
+}
+
+.fruit {
+  background-color: rgb(255, 0, 0)
 }
