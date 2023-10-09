@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Frame } from "./styled";
+import { Frame, Cell } from "./styled";
 
 export default function Screen() {
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const dimension = 12
+    const dimension = 24
 
     const lines = []
     const columns = []
@@ -47,25 +47,46 @@ export default function Screen() {
         )
     }
 
+    function spawnFruit() {
+        let coordinates = {}
+
+        do {
+            coordinates = {
+                x: Math.floor(dimension - Math.random() * dimension),
+                y: Math.floor(dimension - Math.random() * dimension)
+            }
+
+        } while (body.some(segment => segment.x == coordinates.x && segment.y == coordinates.y))
+
+        setFruit(coordinates)
+        console.log(coordinates)
+    }
+
     function moveSnake(direction) {
         setHeadPosition((prevPosition) => {
+            let newBody = {
+                x: prevPosition.x + direction.x,
+                y: prevPosition.y + direction.y
+            }
+
             setBody(body => {
-                body.push({
-                    x: prevPosition.x + direction.x,
-                    y: prevPosition.y + direction.y
-                })
+                body.push(newBody)
 
                 body.shift()
                 return body
             })
-            return {
-                x: prevPosition.x + direction.x,
-                y: prevPosition.y + direction.y
-            }
+
+            colision(newBody)
+
+            return newBody
         });
     }
 
-    function command({ key }) {
+    function command(event) {
+        let { key } = event
+
+        if (key != 'F5') event.preventDefault()
+
         switch (key) {
             case "ArrowUp":
                 moveSnake({ x: -1, y: 0 });
@@ -84,12 +105,26 @@ export default function Screen() {
         }
     }
 
+    function colision(coordinates) {
+        let corpo = body.slice(0, body.length - 1)
+
+        console.log(corpo)
+        console.log(body)
+        console.log(headPosition)
+
+        for (let segment in corpo) {
+            console.log()
+
+            if (corpo[segment].x == coordinates.x && corpo[segment].y == coordinates.y) alert("P E R D E U")
+        }
+    }
+
     function classifier(frame) {
         let className = ""
 
-        if (body.find(body => body.x == frame.line - 1 && body.y == alphabet.indexOf(frame.column))) className = 'body'
-        if (body[body.length - 1].x == frame.line - 1 && body[body.length - 1].y == alphabet.indexOf(frame.column)) className = 'head'
         if (fruit.x == frame.line - 1 && fruit.y == alphabet.indexOf(frame.column)) className = 'fruit'
+        if (body.find(segment => segment.x == frame.line - 1 && segment.y == alphabet.indexOf(frame.column))) className += ' body'
+        if (body[body.length - 1].x == frame.line - 1 && body[body.length - 1].y == alphabet.indexOf(frame.column)) className += ' head'
 
         return className
     }
@@ -98,51 +133,61 @@ export default function Screen() {
 
     useEffect(() => {
         document.addEventListener('keydown', command);
+        spawnFruit()
         return () => {
             document.removeEventListener('keydown', command);
         };
     }, [])
 
+    useEffect(() => {
+        if (headPosition.x === fruit.x && headPosition.y === fruit.y) {
+            let newBody = body
+            newBody.unshift({ ...fruit })
+            setBody(newBody)
+            console.log(body)
+            spawnFruit()
+        }
+
+    }, [headPosition])
+
     return (
         <div>
             <h1>Tela</h1>
 
-            {
-                frames.map((line) => {
-                    return (
-                        <div style={{ display: "flex" }}>
-                            {
-                                line.map(({ id, line, column }) => {
-                                    return (
-                                        <Frame
-                                            id={id}
-                                            className={
-                                                classifier({ id, line, column })
-                                            }
-                                        />
-                                    )
-                                })
-                            }
-                        </div>
-                    )
-                })
-            }
+            <Frame>
+                {
+                    frames.map((line) => {
+                        return (
+                            <div style={{ display: "flex" }}>
+                                {
+                                    line.map(({ id, line, column }) => {
+                                        return (
+                                            <Cell
+                                                id={id}
+                                                className={
+                                                    classifier({ id, line, column })
+                                                }
+                                            />
+                                        )
+                                    })
+                                }
+                            </div>
+                        )
+                    })
+                }
+            </Frame>
             <div style={{ fontSize: "24px", fontWeight: "bold" }}>
-                <p>Olá
-                    <span style={
-                        {
-                            backgroundImage: "linear-gradient(to left, violet, indigo, blue, green, yellow, orange, red)",
-                            color: "transparent",
-                            WebkitBackgroundClip: "text"
-                        }}>
-                         @Recruiter
-                    </span>!
-                </p>
-                <p>Esse projeto ainda não está finalizdo</p>
+                <p>Olá <span style={
+                    {
+                        backgroundImage: "linear-gradient(to left, violet, indigo, blue, green, yellow, orange, red)",
+                        color: "transparent",
+                        WebkitBackgroundClip: "text"
+                    }}>
+                    @Recruiter
+                </span>! </p>
+                <p>Esse projeto ainda não está finalizado</p>
                 <p>Bjs!</p>
-
             </div>
-
         </div >
     )
 }
