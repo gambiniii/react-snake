@@ -1,30 +1,46 @@
-import React, { useState, useEffect } from "react";
-import { Frame, Cell } from "./styled";
+import React, { useState, useEffect, useRef } from "react"
+
+import { Frame, Cell } from "./styled"
+import { gameConfig, snakeOrientation } from "../../config/gameConfig"
 
 export default function Screen() {
-    const gameConfig = {
-        dimension: 24,
-        speed: 100,
-        initialDirection: 'Right',
-        coordinatesPattern: {
-            x: null,
-            y: null
-        },
-        initialBody: [
-            { x: 1, y: 0 },
-            { x: 1, y: 1 },
-            { x: 1, y: 2 },
-            { x: 1, y: 3 },
-        ]
-    }
-
+    let animationFrame
     const frames = []
 
     const [headPosition, setHeadPosition] = useState(gameConfig.initialBody[gameConfig.initialBody.length - 1])
     const [body, setBody] = useState(gameConfig.initialBody)
-    const [fruit, setFruit] = useState(gameConfig.coordinatesPattern)
+
     const [direction, setDirection] = useState(gameConfig.initialDirection)
+    const [orientation, setOrientation] = useState(snakeOrientation[direction.toLowerCase()])
     const [controls, setControls] = useState(true)
+
+    const [fruit, setFruit] = useState(gameConfig.coordinatesPattern)
+    const [gameOver, setGameOver] = useState(false)
+
+    const lastUpdateTimeRef = useRef(0);
+    const animationFrameRef = useRef();
+
+    const orientations = {
+        Up: { x: -1, y: 0 },
+        Down: { x: 1, y: 0 },
+        Left: { x: 0, y: -1 },
+        Right: { x: 0, y: 1 },
+    }
+
+
+    function gameLoop(timestamp) {
+        if (!animationFrameRef.current) return
+
+        const timeElapsed = timestamp - lastUpdateTimeRef.current;
+
+        if (timeElapsed >= 300) {
+            lastUpdateTimeRef.current = timestamp
+            setOrientation(orientations[direction])
+            moveSnake();
+        }
+
+        animationFrameRef.current = requestAnimationFrame(gameLoop);
+    }
 
 
     function createFrames(dimension) {
@@ -48,6 +64,63 @@ export default function Screen() {
     }
 
 
+    function command(event) {
+        let { key } = event
+
+        if (key !== 'F5') event.preventDefault()
+
+        setDirection(prevDirection => {
+            if (!controls) return prevDirection
+
+            switch (key) {
+                case "ArrowUp":
+                    if (prevDirection !== 'Down') return 'Up'
+                    return prevDirection
+                case "ArrowDown":
+                    if (prevDirection !== 'Up') return 'Down'
+                    return prevDirection
+                case "ArrowLeft":
+                    if (prevDirection !== 'Right') return 'Left'
+                    return prevDirection
+                case "ArrowRight":
+                    if (prevDirection !== 'Left') return 'Right'
+                    return prevDirection
+                default:
+                    return prevDirection
+            }
+        })
+    }
+
+
+    function moveSnake() {
+        setHeadPosition((prevPosition) => {
+            let newHead = {
+                x: prevPosition.x + orientation.x,
+                y: prevPosition.y + orientation.y
+            }
+
+            setBody(body => {
+                body.push(newHead)
+                body.shift()
+                return body
+            })
+
+            colision(newHead)
+
+            return newHead
+        })
+    }
+
+
+    function colision(coordinates) {
+        let snakeBody = body.slice(0, body.length - 1)
+
+        for (let segment in snakeBody) {
+            if (snakeBody[segment].x === coordinates.x && snakeBody[segment].y === coordinates.y) alert("P E R D E U")
+        }
+    }
+
+
     function spawnFruit() {
         try {
             let coordinates = {}
@@ -67,92 +140,6 @@ export default function Screen() {
     }
 
 
-    function moveSnake(movement) {
-        setHeadPosition((prevPosition) => {
-            let newBody = {
-                x: prevPosition.x + movement.x,
-                y: prevPosition.y + movement.y
-            }
-
-            setBody(body => {
-                body.push(newBody)
-                body.shift()
-                return body
-            })
-
-            colision(newBody)
-            setControls(true)
-
-            return newBody
-        })
-
-    }
-
-
-    function command(event) {
-        let { key } = event
-
-        if (key !== 'F5') event.preventDefault()
-
-        setDirection(prevDirection => {
-            if (!controls) return prevDirection
-
-            switch (key) {
-                case "ArrowUp":
-                    if (prevDirection === 'Down') return prevDirection
-                    return 'Up'
-                case "ArrowDown":
-                    if (prevDirection === 'Up') return prevDirection
-                    return 'Down'
-                case "ArrowLeft":
-                    if (prevDirection === 'Right') return prevDirection
-                    return 'Left'
-                case "ArrowRight":
-                    if (prevDirection === 'Left') return prevDirection
-                    return 'Right'
-                default:
-                    return prevDirection
-            }
-        })
-    }
-
-
-    function movement() {
-        switch (direction) {
-            case "Up":
-                moveSnake({ x: -1, y: 0 });
-                break;
-            case "Down":
-                moveSnake({ x: 1, y: 0 });
-                break;
-            case "Left":
-                moveSnake({ x: 0, y: -1 });
-                break;
-            case "Right":
-                moveSnake({ x: 0, y: 1 });
-                break;
-            default:
-                break;
-        }
-    }
-
-    function tick() {
-        window.clearTimeout()
-        setTimeout(() => {
-            movement()
-        }, gameConfig.speed)
-    }
-
-
-    function colision(coordinates) {
-        let corpo = body.slice(0, body.length - 1)
-
-        for (let segment in corpo) {
-            if (corpo[segment].x === coordinates.x && corpo[segment].y === coordinates.y) alert("P E R D E U")
-        }
-    }
-
-
     function classifier(frame) {
         let className = ""
 
@@ -164,15 +151,13 @@ export default function Screen() {
     }
 
 
-    createFrames(gameConfig.dimension)
-
     useEffect(() => {
-        document.addEventListener('keydown', command);
+        document.addEventListener('keydown', command)
         spawnFruit()
-        movement()
         return () => {
-            document.removeEventListener('keydown', command);
-        };
+            document.removeEventListener('keydown', command)
+            cancelAnimationFrame(animationFrameRef.current);
+        }
     }, [])
 
 
@@ -183,13 +168,26 @@ export default function Screen() {
             setBody(newBody)
             spawnFruit()
         }
-
-        tick()
     }, [headPosition])
 
+
     useEffect(() => {
-        setControls(false)
-    }, [direction])
+        cancelAnimationFrame(animationFrameRef.current)
+
+        setOrientation(orientations[direction])
+        return () => {
+            cancelAnimationFrame(animationFrame);
+        }
+    }, [direction]);
+
+    useEffect(() => {
+        cancelAnimationFrame(animationFrameRef.current)
+
+        animationFrameRef.current = requestAnimationFrame(gameLoop);
+    }, [orientation])
+
+
+    createFrames(gameConfig.dimension)
 
 
     return (
@@ -238,8 +236,8 @@ export default function Screen() {
             </div >
 
             <div>
-                <h3>Direção: {direction}</h3>
-                <h3>Controles: {controls ? 'enabled' : 'disabled'}</h3>
+                <h3>direction: {direction}</h3>
+                <h3>controls: {controls ? 'enabled' : 'disabled'}</h3>
             </div>
 
         </div>
